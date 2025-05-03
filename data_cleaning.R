@@ -87,6 +87,39 @@ birads_df <- birads_df %>%
 # There are no missing values except mass and calc values
 sum(is.na(birads_df[,1:9]))
 
+# Get rid of mass and calc data (too many NaNs)
 birads_df <- birads_df[,1:9]
+
+# Handling outliers
+# Age
+quantiles <- quantile(birads_df$age_at_study, c(0.25, 0.5, 0.75))
+iqr <- IQR(birads_df$age_at_study)
+age_outliers <- which(birads_df$age_at_study < quantiles[1] - 1.5*iqr | birads_df$age_at_study > quantiles[3] + 1.5*iqr) # Two young women with negative and benign
+
+# Tissueden
+quantiles <- quantile(birads_df$tissueden, c(0.25, 0.5, 0.75))
+iqr <- IQR(birads_df$tissueden)
+# One outlier with tissueden 5 and benign
+tissueden_outliers <- which(birads_df$tissueden < quantiles[1] - 1.5*iqr | birads_df$tissueden > quantiles[3] + 1.5*iqr)
+
+# RACE_DESC count plot
+ggplot(birads_df, aes(x = RACE_DESC)) +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Count of RACE_DESC",
+       x = "RACE_DESC",
+       y = "Count")
+
+# ETHNIC_GROUP_DESC count plot
+ggplot(birads_df, aes(x = ETHNIC_GROUP_DESC)) +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Count of ETHNIC_GROUP_DESC",
+       x = "ETHNIC_GROUP_DESC",
+       y = "Count")
+birads_df %>% count(ETHNIC_GROUP_DESC)
+
+# MARITAL_STATUS_DESC count
+birads_df %>% count(MARITAL_STATUS_DESC)
 
 write.csv(birads_df, "EMBED_OpenData_clinical_cleaned.csv")
