@@ -1,15 +1,30 @@
 import pandas as pd
 import numpy as np
 
-df = pd.read_csv(r"C:\Users\Acer\EMBED_dataset_tables\EMBED_OpenData_metadata.csv") #droga do csv
+metadata_path = r"C:\Users\Acer\EMBED_dataset_tables\EMBED_OpenData_metadata.csv"
 
+df = pd.read_csv(metadata_path)
+
+best_seed = 982  
 cohort2_ids = df.loc[df['cohort_num'] == 2, 'empi_anon'].unique()
 
+np.random.seed(best_seed)
 n = len(cohort2_ids) // 2
-np.random.seed(1)  
-selected_ids = np.random.choice(cohort2_ids, size=n, replace=False)
+selected_to_3 = np.random.choice(cohort2_ids, size=n, replace=False)
 
-mask = df['empi_anon'].isin(selected_ids) & (df['cohort_num'] == 2)
-df.loc[mask, 'cohort_num'] = 3
+patient_to_cohort = (
+    df[['empi_anon', 'cohort_num']]
+    .drop_duplicates(subset=['empi_anon'])
+    .set_index('empi_anon')['cohort_num']
+    .to_dict()
+)
 
-df.to_csv('return_csv.csv', index=False)
+for pid in selected_to_3:
+    patient_to_cohort[pid] = 3
+
+
+df['cohort_num'] = df['empi_anon'].map(patient_to_cohort)
+
+output_path = r"C:\Users\Acer\EMBED_dataset_tables\EMBED_metadata_seed{}_updated.csv".format(best_seed)
+df.to_csv(output_path, index=False)
+
