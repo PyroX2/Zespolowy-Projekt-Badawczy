@@ -22,11 +22,11 @@ selected_cohort = args.cohort
 
 # Raise an error if the cohort is not valid
 if selected_cohort not in [1, 2, 3]:
-    raise ValueError("Cohort must be either 1 or 2.")
+    raise ValueError("Cohort must be either 1, 2 or 3.")
 
 split = args.split
-images_output_dir = os.path.join(root_dir, 'images', split)
-labels_output_dir = os.path.join(root_dir, 'labels', split)
+images_output_dir = os.path.join(root_dir, split, 'images')
+labels_output_dir = os.path.join(root_dir, split, 'labels')
 
 # Create directories if they do not exist
 if not root_dir.exists():
@@ -39,14 +39,16 @@ def main():
     df.columns = df.columns.str.strip() # Delete spaces in column names
 
     # Get only rows with valid ROIs and 2D images for the selected cohort
-    df = df[
-        (df['num_roi'] > 0) &
-        (df['FinalImageType'] == '2D') &
-        (df['cohort_num'] == selected_cohort)  
-    ]
+    # df = df[
+    #     (df['num_roi'] > 0) &
+    #     (df['FinalImageType'] == '2D') &
+    #     (df['cohort_num'] == selected_cohort)  
+    # ]
+    df = df[df['cohort_num'] == selected_cohort]
 
     for idx, row in df.iterrows():
-        roi_str = row['ROI_coords']
+        roi_str = row['PNG_ROI_coords']
+        roi_class = row["exam_class"]
         if not isinstance(roi_str, str) or roi_str.strip() == "":
             print(f"ROI for row {idx} is not a valid string, skipping.")
             continue
@@ -58,12 +60,13 @@ def main():
             image_width = int(row['Columns'])
             image_height = int(row['Rows'])
         except:
-            print(f"No image width and hight in row {idx}, skipping.")
+            print(f"No image width and height in row {idx}, skipping.")
             continue
 
         image_src_path = row['png_path'].strip()
         relative_path = image_src_path.split('/extracted-images/')[-1]
-        image_src_path = os.path.join(embed_dataset_root, 'png_images/cohort_1/', relative_path)
+        print("Relative:", relative_path)
+        image_src_path = os.path.join(embed_dataset_root, relative_path)
         image_filename = row['png_filename'].strip() 
 
         if image_filename.endswith('.jpg'):
@@ -83,12 +86,14 @@ def main():
             x_center, y_center, width, height = utils.roi_rescale(roi, image_height, image_width)
         
             # Add bounding box to list of all bounding boxes in YOLO format
-            line = f"0 {x_center:.6f} {y_center:.6f} {width:.6f} {height:.6f}\n"
+            line = f"{roi_class} {x_center:.6f} {y_center:.6f} {width:.6f} {height:.6f}\n"
             lines.append(line)
 
         with open(output_label_path, 'w') as f:
             f.write(''.join(lines))
 
+        print("Src", image_src_path)
+        print("Dst", output_image_path)
         os.symlink(image_src_path, output_image_path)
 
     print(f"File saved to dataset root: {root_dir}")
