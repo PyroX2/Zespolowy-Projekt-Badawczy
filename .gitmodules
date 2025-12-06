@@ -1,0 +1,3 @@
+[submodule "mil"]
+	path = mil
+	url = https://github.com/PyroX2/MIL-PyTorch.git
